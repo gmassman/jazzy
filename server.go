@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/rs/cors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,7 +24,7 @@ type Server struct {
 
 func NewServer(l *log.Logger, db *mongo.Database) *Server {
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:8080"},
+		AllowedOrigins:   []string{"http://localhost:3000", "http://localhost:8080"},
 		AllowCredentials: true,
 		Debug:            true,
 	})
@@ -55,21 +57,34 @@ func (s *Server) handlePDF() http.HandlerFunc {
 }
 
 func (s *Server) handlePagedPDF() http.HandlerFunc {
-	// input := struct {
-	// 	page int `json:"page"`
-	// 	size int `json:"size"`
-	// }{}
+	const pageSize = 20
+	var pageNumber int
+	var err error
 	type record struct {
-		ID       primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-		Filename string             `json:"filename"`
-		Source   string             `json:"source"`
-		Contents []byte             `json:"contents"`
+		ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+		Filename  string             `json:"filename"`
+		Source    string             `json:"source"`
+		PDFBase64 string             `json:"contents"`
+		Contents  []byte             `json:"-"`
 	}
 	return func(w http.ResponseWriter, req *http.Request) {
+		q := req.URL.Query()
+		page, exists := q["page"]
+		if exists && len(page) == 1 {
+			pageNumber, err = strconv.Atoi(page[0])
+			if err != nil {
+				s.Logger.Printf("bad query string in URL: %v\n", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+		}
+
 		results := []*record{}
 		filter := bson.D{}
 		findOptions := options.Find()
-		findOptions.SetLimit(10)
+		findOptions.SetSort(bson.D{{"_id", 1}})
+		findOptions.SetSkip(int64(pageNumber * pageSize))
+		findOptions.SetLimit(pageSize)
 
 		cur, err := s.Database.Collection("sheets").Find(req.Context(), filter, findOptions)
 		if err != nil {
@@ -87,6 +102,7 @@ func (s *Server) handlePagedPDF() http.HandlerFunc {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
+			r.PDFBase64 = base64.StdEncoding.EncodeToString(r.Contents)
 
 			results = append(results, &r)
 		}
