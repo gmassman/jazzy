@@ -1,4 +1,2 @@
 jazzy
-helpers/
-
-*.lock
+helpers/*

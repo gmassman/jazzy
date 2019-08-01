@@ -57,7 +57,7 @@ func (s *Server) handlePDF() http.HandlerFunc {
 }
 
 func (s *Server) handlePagedPDF() http.HandlerFunc {
-	const pageSize = 20
+	const pageSize = 10
 	var pageNumber int
 	var err error
 	type record struct {
@@ -66,6 +66,9 @@ func (s *Server) handlePagedPDF() http.HandlerFunc {
 		Source    string             `json:"source"`
 		PDFBase64 string             `json:"contents"`
 		Contents  []byte             `json:"-"`
+		Page      int                `json:"page"`
+		Song      string             `json:"song"`
+		Composer  string             `json:"composer"`
 	}
 	return func(w http.ResponseWriter, req *http.Request) {
 		q := req.URL.Query()
@@ -82,7 +85,7 @@ func (s *Server) handlePagedPDF() http.HandlerFunc {
 		results := []*record{}
 		filter := bson.D{}
 		findOptions := options.Find()
-		findOptions.SetSort(bson.D{{"_id", 1}})
+		findOptions.SetSort(bson.D{{"page", 1}})
 		findOptions.SetSkip(int64(pageNumber * pageSize))
 		findOptions.SetLimit(pageSize)
 
@@ -92,8 +95,6 @@ func (s *Server) handlePagedPDF() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		// unsupported in driver version 1.0.4, need to wait until 1.1.0 is released
-		// err = cur.All(req.Context(), &results)
 		for cur.Next(req.Context()) {
 			var r record
 			err := cur.Decode(&r)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import InfiniteScroll from "react-infinite-scroll-component";
+import InfiniteScroll from 'react-infinite-scroll-component';
 import axios from 'axios';
 
 import PDFRow from './PDFRow';
@@ -32,6 +32,7 @@ function PDFList({serverURL}) {
             }>
             {items.map((item, index) => (
                 <div key={index}>
+                    <canvas id={'canvas-' + item.page}></canvas>
                     <PDFRow {...item}></PDFRow>
                 </div>
             ))}
