@@ -4,16 +4,17 @@ import axios from 'axios';
 
 import PDFRow from './PDFRow';
 
+const MemoPDFRow = React.memo(PDFRow);
+
 function PDFList({serverURL}) {
     const [page, setPage] = useState(0);
     const [items, setItems] = useState([]);
 
     const updateItems = () => {
         const fetchData = async () => {
-            const response = await axios.get(serverURL + '/pdfs?page=' + page);
-            setItems(items.concat(response.data));
+            const response = await axios.get(`${serverURL}/pdfs?page=${page}`);
+            setItems([...items, ...response.data]);
         }
-    
         fetchData();
     }
 
@@ -32,8 +33,8 @@ function PDFList({serverURL}) {
             }>
             {items.map((item, index) => (
                 <div key={index}>
-                    <canvas id={'canvas-' + item.page}></canvas>
-                    <PDFRow {...item}></PDFRow>
+                    <canvas id={`canvas-${item.page}`}></canvas>
+                    <MemoPDFRow {...item}></MemoPDFRow>
                 </div>
             ))}
         </InfiniteScroll>
