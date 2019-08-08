@@ -1,19 +1,21 @@
 import React from 'react';
-const pdfjs = require('pdfjs-dist/build/pdf');
+import pdfjs from 'pdfjs-dist/build/pdf';
+
+import config from './config';
+
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
-function renderPDF(contents, page) {
+function renderPDF(contents, id) {
     const pdfData = atob(contents);
     return pdfjs.getDocument({data: pdfData}).promise
         .then(pdf => {
             const pageNumber = 1;
             return pdf.getPage(pageNumber);
         }).then(pdfPage => {
-            const scale = 0.75;
+            const scale = config.previewScale;
             const viewport = pdfPage.getViewport({scale: scale});
 
-            // Prepare canvas using PDF pdfPage dimensions
-            const canvas = document.getElementById(`canvas-${page}`);
+            const canvas = document.getElementById(id);
             const context = canvas.getContext('2d');
 
             if (canvas.rendered) {
@@ -35,19 +37,26 @@ function renderPDF(contents, page) {
         });
 }
 
-function PDFRow({
+function PDFPreview({
     source,
     filename,
     contents,
+    id,
     page
 }) {
-    renderPDF(contents, page)
-        .then(() => console.log(`rendered page ${page}`));
+    renderPDF(contents, id)
+        .then(() => console.log(`rendered ${filename}`));
     return (
         <>
-            <span>{source} - {filename}</span>
+            <div>
+                <span>source file: {source}</span>
+                <br/>
+                <span>filename: {filename}</span>
+                <br/>
+                <span>page number: {page}</span>
+            </div>
         </>
     )
 }
 
-export default PDFRow;
+export default PDFPreview;

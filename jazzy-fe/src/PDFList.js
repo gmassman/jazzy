@@ -1,44 +1,97 @@
 import React, { useState, useEffect } from 'react';
-import InfiniteScroll from 'react-infinite-scroll-component';
+import { FixedSizeList as List } from 'react-window';
+import InfiniteLoader from 'react-window-infinite-loader';
 import axios from 'axios';
 
-import PDFRow from './PDFRow';
+import config from './config';
+import PDFPreview from './PDFPreview';
+import EnlargedPDF from './EnlargedPDF';
 
-const MemoPDFRow = React.memo(PDFRow);
+const MemoizedPDFPreview = React.memo(PDFPreview);
+
+const Row = ({ data, index, style }) => {
+    const { state, enlargePDF } = data;
+    const item = state.items[index];
+    style = { ...style, display: 'flex', justifyContent: 'center' };
+    return (
+        <div key={item.id} style={style}>
+            <canvas id={item.id} onClick={enlargePDF}></canvas>
+            <MemoizedPDFPreview {...item}></MemoizedPDFPreview>
+        </div>
+    )
+};
+
+const MemoizedRow = React.memo(Row);
 
 function PDFList({serverURL}) {
-    const [page, setPage] = useState(0);
-    const [items, setItems] = useState([]);
+    const [state, setState] = useState({
+        page: 0,
+        items: [],
+        activePDF: {}
+    });
 
     const updateItems = () => {
         const fetchData = async () => {
-            const response = await axios.get(`${serverURL}/pdfs?page=${page}`);
-            setItems([...items, ...response.data]);
+            const response = await axios.get(`${serverURL}/pdfs?page=${state.page}`);
+            setState({
+                ...state,
+                items: [...state.items, ...response.data]
+            });
         }
         fetchData();
     }
 
-    useEffect(updateItems, [page]);
+    const incPageNumber = () => {
+        setState({
+            ...state,
+            page: state.page + 1
+        });
+    }
+
+    const isItemLoaded = index => !!state.items[index];
+
+    const enlargePDF = (e) => {
+        e.preventDefault();
+        const item = state.items.find(el => el.id === e.target.id);
+        setState({
+            ...state,
+            activePDF: item
+        });
+    }
+
+    const unenlargePDF = () => {
+        setState({
+            ...state,
+            activePDF: {}
+        })
+    }
+
+    useEffect(updateItems, [state.page]);
 
     return (
-        <InfiniteScroll
-            dataLength={items.length}
-            next={() => { setPage(page + 1) }}
-            hasMore={true}
-            loader={<h4>Loading...</h4>}
-            endMessage={
-                <p style={{textAlign: 'center'}}>
-                    <b>Yay! You have seen it all</b>
-                </p>
-            }>
-            {items.map((item, index) => (
-                <div key={index}>
-                    <canvas id={`canvas-${item.page}`}></canvas>
-                    <MemoPDFRow {...item}></MemoPDFRow>
-                </div>
-            ))}
-        </InfiniteScroll>
-    )
+        <>
+            <InfiniteLoader
+                isItemLoaded={isItemLoaded}
+                itemCount={state.items.length + 10}
+                loadMoreItems={incPageNumber}
+            >
+                {({ onItemsRendered, ref }) => (
+                    <List
+                        onItemsRendered={onItemsRendered}
+                        ref={ref}
+                        height={window.innerHeight}
+                        itemCount={state.items.length}
+                        itemData={{ state, enlargePDF }}
+                        itemSize={Math.ceil(config.previewScale * 800)} // pdfjs scale 1 : 800px height
+                        width={window.innerWidth}
+                    >
+                        {MemoizedRow}
+                    </List>
+                )}
+            </InfiniteLoader>
+            <EnlargedPDF {...state.activePDF} onClick={unenlargePDF}></EnlargedPDF> :
+        </>
+    );
 }
 
 export default PDFList;

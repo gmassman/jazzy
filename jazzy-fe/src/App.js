@@ -4,7 +4,7 @@ import PDFList from './PDFList';
 
 function App() {
   return (
-    <div className="App">
+    <div className='App'>
       <PDFList
         serverURL={process.env.REACT_APP_SERVER_URL}
       />
