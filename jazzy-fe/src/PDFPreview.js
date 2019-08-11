@@ -18,12 +18,8 @@ function renderPDF(contents, id) {
             const canvas = document.getElementById(id);
             const context = canvas.getContext('2d');
 
-            if (canvas.rendered) {
-                return null;
-            }
             canvas.height = viewport.height;
             canvas.width = viewport.width;
-            canvas.rendered = true;
 
             // Render PDF pdfPage into canvas context
             const renderContext = {
@@ -54,6 +50,8 @@ function PDFPreview({
                 <span>filename: {filename}</span>
                 <br/>
                 <span>page number: {page}</span>
+                <br/>
+                <span>ObjectId: {id}</span>
             </div>
         </>
     )

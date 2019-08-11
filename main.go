@@ -28,7 +28,6 @@ func main() {
 	db := client.Database("jazzy")
 
 	srv := NewServer(logger, db)
-	srv.SetupRoutes()
 
 	logger.Println("starting the server on 3030...")
 	err = http.ListenAndServe(":3030", srv.Handler)
