@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { FixedSizeList as List } from 'react-window'
 import pdfjs from 'pdfjs-dist/build/pdf'
 
+import SongAttributes from './SongAttributes'
 import config from './config'
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`
@@ -27,20 +28,12 @@ function renderPDFPage(pageLoader, canvas) {
     })
 }
 
-const Input = ({ value, onChangeInput, children }) => (
-    <label>
-        {children}
-        <input type="text" value={value} onChange={onChangeInput} />
-    </label>
-)
-
 function EnlargedPDF(activePDF) {
     const [state, setState] = useState({
         pagesLoaded: false,
         pageLoaders: [],
         dimensions: null
     })
-    const [currentPDF, setCurrentPDF] = useState(activePDF)
 
     useEffect(() => {
         if (state.pageLoaders.length > 0) {
@@ -59,27 +52,6 @@ function EnlargedPDF(activePDF) {
                 })
             })
     })
-
-    const handleSongChange = event => {
-        event.preventDefault()
-        setCurrentPDF({
-            ...currentPDF,
-            song: event.target.value
-        })
-    }
-
-    const handleComposerChange = event => {
-        event.preventDefault()
-        setCurrentPDF({
-            ...currentPDF,
-            composer: event.target.value
-        })
-    }
-
-    const handleSubmit = event => {
-        event.preventDefault()
-        // do axios post to update the record
-    }
 
     const Column = ({ index, style }) => {
         const canvasRef = useRef(null)
@@ -124,12 +96,7 @@ function EnlargedPDF(activePDF) {
 
     return state.pagesLoaded ? (
         <>
-            <Input value={currentPDF.song} onChangeInput={handleSongChange}>
-                Song:
-            </Input>
-            <Input value={currentPDF.composer} onChangeInput={handleComposerChange}>
-                Composer:
-            </Input>
+            <SongAttributes activePDF={activePDF}></SongAttributes>
             <List
                 layout='horizontal'
                 itemCount={state.pageLoaders.length}
