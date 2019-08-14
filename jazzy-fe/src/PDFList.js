@@ -1,71 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import InfiniteLoader from 'react-window-infinite-loader';
-import Modal from 'react-modal';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react'
+import { FixedSizeList as List } from 'react-window'
+import InfiniteLoader from 'react-window-infinite-loader'
+import Modal from 'react-modal'
+import axios from 'axios'
 
-import config from './config';
-import PDFPreview from './PDFPreview';
-import EnlargedPDF from './EnlargedPDF';
+import config from './config'
+import PDFPreview from './PDFPreview'
+import EnlargedPDF from './EnlargedPDF'
 
-Modal.setAppElement('#root');
+Modal.setAppElement('#root')
 
-const MemoizedPDFPreview = React.memo(PDFPreview);
+const MemoizedPDFPreview = React.memo(PDFPreview)
 
 const Row = ({ data, index, style }) => {
-    const { state, enlargePDF, unenlargePDF } = data;
-    const item = state.items[index];
-    style = { ...style, display: 'flex', justifyContent: 'center' };
+    const {
+        sheets,
+        activePDF,
+        enlargePDF,
+        unenlargePDF
+    } = data,
+    sheet = sheets[index],
+    flexStyle = {
+        display: 'flex',
+        justifyContent: 'center'
+    }
+
     return (
-        <div key={item.id} style={style}>
-            <canvas id={item.id} onClick={enlargePDF}></canvas>
-            <MemoizedPDFPreview {...item}></MemoizedPDFPreview>
+        <div key={sheet.id} style={{ ...style, ...flexStyle }}>
+            <canvas id={sheet.id} onClick={enlargePDF}></canvas>
+            <MemoizedPDFPreview {...sheet}></MemoizedPDFPreview>
             <Modal
-                isOpen={!!state.activePDF}
+                isOpen={!!activePDF}
                 onRequestClose={unenlargePDF}
             >
-                <EnlargedPDF {...state.activePDF}></EnlargedPDF>
+                <EnlargedPDF {...activePDF}></EnlargedPDF>
             </Modal>
         </div>
     )
-};
+}
 
-const MemoizedRow = React.memo(Row);
+const MemoizedRow = React.memo(Row)
 
 function PDFList({serverURL}) {
     const [state, setState] = useState({
         page: 0,
-        items: [],
+        sheets: [],
         activePDF: null
-    });
-
-    const updateItems = () => {
-        const fetchData = async () => {
-            const response = await axios.get(`${serverURL}/pdfs?page=${state.page}`);
-            setState({
-                ...state,
-                items: [...state.items, ...response.data]
-            });
-        }
-        fetchData();
-    }
+    })
 
     const incPageNumber = () => {
         setState({
             ...state,
             page: state.page + 1
-        });
+        })
     }
 
-    const isItemLoaded = index => !!state.items[index];
+    const isSheetLoaded = index => !!state.sheets[index]
 
     const enlargePDF = (e) => {
-        e.preventDefault();
-        const item = state.items.find(el => el.id === e.target.id);
+        e.preventDefault()
+        const item = state.sheets.find(el => el.id === e.target.id)
         setState({
             ...state,
             activePDF: item
-        });
+        })
     }
 
     const unenlargePDF = () => {
@@ -75,12 +73,25 @@ function PDFList({serverURL}) {
         })
     }
 
-    useEffect(updateItems, [state.page]);
+
+    const updateSheets = () => {
+        const fetchData = async () => {
+            const response = await axios.get(`${serverURL}/pdfs?page=${state.page}`)
+            setState({
+                ...state,
+                ...{ enlargePDF, unenlargePDF },
+                sheets: [...state.sheets, ...response.data],
+            })
+        }
+        fetchData()
+    }
+
+    useEffect(updateSheets, [state.page])
 
     return (
         <InfiniteLoader
-            isItemLoaded={isItemLoaded}
-            itemCount={state.items.length + 10}
+            isItemLoaded={isSheetLoaded}
+            itemCount={state.sheets.length + 10}
             loadMoreItems={incPageNumber}
         >
             {({ onItemsRendered, ref }) => (
@@ -88,8 +99,8 @@ function PDFList({serverURL}) {
                     onItemsRendered={onItemsRendered}
                     ref={ref}
                     height={window.innerHeight}
-                    itemCount={state.items.length}
-                    itemData={{ state, enlargePDF, unenlargePDF }}
+                    itemCount={state.sheets.length}
+                    itemData={{ ...state }}
                     itemSize={Math.ceil(config.previewScale * 800)} // pdfjs scale 1 : 800px height
                     width={window.innerWidth}
                 >
@@ -97,7 +108,7 @@ function PDFList({serverURL}) {
                 </List>
             )}
         </InfiniteLoader>
-    );
+    )
 }
 
-export default PDFList;
+export default PDFList
