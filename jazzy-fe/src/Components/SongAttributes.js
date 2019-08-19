@@ -7,7 +7,7 @@ const Input = ({ value, onChangeInput, children }) => (
     </label>
 )
 
-function SongAttributes({activePDF}){
+function SongAttributes(activePDF){
     const [currentPDF, setCurrentPDF] = useState(activePDF)
 
     const handleSongChange = event => {
@@ -26,10 +26,10 @@ function SongAttributes({activePDF}){
         })
     }
 
-    const handleSubmit = event => {
-        event.preventDefault()
-        // do axios post to update the record
-    }
+    // const handleSubmit = event => {
+    //     event.preventDefault()
+    //     // do axios post to update the record
+    // }
 
     return (
         <>
